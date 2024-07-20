@@ -37,7 +37,7 @@ def drawing():
     game.fill((0,0,0))
     # Drawing points
     for (entity) in entities:
-        entity.drawcircle()
+        entity.draw_circle()
     # Showing grafic
     win.blit(game,(25,25))
     pygame.display.update()
