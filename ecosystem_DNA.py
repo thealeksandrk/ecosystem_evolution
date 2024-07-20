@@ -18,13 +18,13 @@ from collections import defaultdict
 entities = []
 died_entities = []
 # Field
-field_size: int = 8000  # for entities xy
+field_size: int = 7500  # for entities xy
 window_size: int = 750  # 800 too big for me
 field_x_window: float = window_size / field_size
 # Start nums
 start_DNA_len: int = 1000
 start_num_of_entities: int = 100
-start_num_of_old_entities: int = 10
+start_num_of_old_entities: int = 1
 num_of_entities_for_saving: int = 100
 start_marker_size: int = 25
 
@@ -242,11 +242,17 @@ class Biotic:
         }
 
         self.dna_sequencing()
-        # important to have them. Try to solve! smhw check in defs
-        #if not hasattr(self, 'mass_change_factor'): self.mass_change_factor: float = 0
-        # print(self.color)
-        # if not hasattr(self, 'color'): self.color = parent.get('color', (125, 125, 125))
-        # print(self.color)
+
+        self.dict_can_attr = []
+        for parameter in self.start_codons:
+            char_name = self.start_codons[parameter][11:]
+            action = self.__dict__.get(char_name, False)
+            if action:
+                action = self.__getattribute__(char_name[4:])
+                if callable(action):
+                    self.dict_can_attr.append(action)
+                else:
+                    print("_____There must be error in def name for", char_name[4:], "_____", action)
 
     def __getattr__(self, item):
         if item == 'color':
@@ -277,6 +283,7 @@ class Biotic:
         temp_dict = self.__dict__.copy()
         del temp_dict['start_codons']
         del temp_dict['finish_codons']
+        del temp_dict['dict_can_attr']
         print("\n\n\t\t Biota parameters START\n")
         for parameter in temp_dict:
             print('{} : {}'.format(parameter, temp_dict[parameter]))
@@ -320,14 +327,8 @@ class Biotic:
 
             self.move()
 
-            for parameter in self.start_codons:
-                char_name = self.start_codons[parameter][11:]
-                action = self.__dict__.get(char_name, False)
-                if action:
-                    action = self.__getattribute__(char_name[4:])
-                    if callable(action):
-                        action()
-                    else: print("_____There must be error in def name for", char_name[4:], "_____", action)
+            for action in self.dict_can_attr:
+                action()
 
             self.hunger()
             self.mass_change()
@@ -477,7 +478,7 @@ class Biotic:
             self.food_in_stomach_for_hunger_count += 0.5
 
     def hunger(self):
-        self.food_in_stomach_for_hunger_count -= 0.05 + self.marker_size/100
+        self.food_in_stomach_for_hunger_count -= 0.04 + self.marker_size/500 + 0.02 * len(self.dict_can_attr)
         self.hp += 0.5
         if self.food_in_stomach_for_hunger_count < self.marker_size/2:
             self.hp -= 1
