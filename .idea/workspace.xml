@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7930c735-678a-4c15-a1fa-5d12522b837b" name="Changes" comment="works, but i want to make field bigger">
-      <change beforePath="$PROJECT_DIR$/ecosystem_reg1.py" beforeDir="false" afterPath="$PROJECT_DIR$/ecosystem_reg1.py" afterDir="false" />
+    <list default="true" id="7930c735-678a-4c15-a1fa-5d12522b837b" name="Changes" comment="nothing">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ecosystem_DNA.py" beforeDir="false" afterPath="$PROJECT_DIR$/ecosystem_DNA.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -103,12 +104,20 @@
       <option name="presentableId" value="LOCAL−00005" />
       <updated>1721470784213</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL−00006" summary="nothing">
+      <option name="closed" value="true" />
+      <created>1721472087086</created>
+      <option name="number" value="LOCAL−00006" />
+      <option name="presentableId" value="LOCAL−00006" />
+      <updated>1721472087086</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="works just mass changing and replication" />
     <MESSAGE value="works, but i want to make field bigger" />
-    <option name="LAST_COMMIT_MESSAGE" value="works, but i want to make field bigger" />
+    <MESSAGE value="nothing" />
+    <option name="LAST_COMMIT_MESSAGE" value="nothing" />
   </component>
 </project>

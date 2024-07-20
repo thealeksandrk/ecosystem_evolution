@@ -18,17 +18,19 @@ from collections import defaultdict
 entities = []
 died_entities = []
 # Field
-field_size: int = 700  # for entities xy
-window_size: int = 800
+field_size: int = 8000  # for entities xy
+window_size: int = 750  # 800 too big for me
+field_x_window: float = window_size / field_size
 # Start nums
 start_DNA_len: int = 1000
-start_num_of_entities: int = 50
+start_num_of_entities: int = 100
 start_num_of_old_entities: int = 10
 num_of_entities_for_saving: int = 100
 start_marker_size: int = 25
 
 mutation_rate: float = 0.05
 
+not_pause: bool = True
 painting: bool = True
 play: bool = True
 stopper: int = 50
@@ -37,11 +39,13 @@ generations_counter: int = 0
 
 # Functions
 def eco_start():
-    global entities, died_entities, start_marker_size, start_num_of_entities, start_num_of_old_entities, num_of_entities_for_saving, start_DNA_len, generations_counter
+    global entities, died_entities, start_marker_size, start_num_of_entities, start_num_of_old_entities, \
+        num_of_entities_for_saving, start_DNA_len, generations_counter
     generations_counter += 1
     if entities or died_entities: save_dna_to_file(entities, died_entities, num_of_entities_for_saving)
     entities = []
     died_entities = []
+    old_dna = []
     if start_num_of_old_entities > 0:
         old_dna = read_dna_from_file()
         if old_dna:
@@ -54,13 +58,15 @@ def eco_start():
                 )
 
             for i in range(min(len(old_dna), start_num_of_old_entities)):
-                entities.append(Biotic(x=rand(1, int(field_size*0.99)-1), y=rand(1, int(field_size*0.99)-1), dna=old_dna[i][1], marker_size=start_marker_size))
+                entities.append(Biotic(x=rand(1, int(field_size*0.99)-1), y=rand(1, int(field_size*0.99)-1),
+                                       dna=old_dna[i][1], marker_size=start_marker_size))
     for i in range(start_num_of_entities-min(len(old_dna), start_num_of_old_entities)):
         start_dna: int = rand(0, 3)
         for _ in range(start_DNA_len - 1):
             start_dna *= 10
             start_dna += rand(0, 3)
-        entities.append(Biotic(x=rand(1, int(field_size*0.99)-1), y=rand(1, int(field_size*0.99)-1), dna=str(start_dna), marker_size=start_marker_size))
+        entities.append(Biotic(x=rand(1, int(field_size*0.99)-1), y=rand(1, int(field_size*0.99)-1),
+                               dna=str(start_dna), marker_size=start_marker_size))
 
 
 def drawing():
@@ -243,7 +249,9 @@ class Biotic:
         # print(self.color)
 
     def __getattr__(self, item):
-        if item == 'color': self.color = (125, 125, 125)
+        if item == 'color':
+            self.color = (125, 125, 125)
+            return [125, 125, 125]
         elif item == 'max_velocity':
             self.max_velocity = [0, 0]
             return [0, 0]
@@ -251,17 +259,19 @@ class Biotic:
 
     # technic and update block
     def draw_circle(self):
+        global field_x_window
         # can draw smaller, to save space
-        try:
-            pygame.draw.circle(game, self.color, (int(self.x), int(self.y)), self.marker_size, 0)
-        except:
-            self.color = (125, 125, 125)
+        circle_x = int(self.x * field_x_window)
+        circle_y = int(self.y * field_x_window)
+        circle_r = self.marker_size * field_x_window  # Check mb need to *2 or 3, if too small
+        # try:
+        pygame.draw.circle(game, self.color, (circle_x, circle_y), circle_r, 0)
+        # except e as ex:
+        #     self.color = (125, 125, 125)
 
-        if self.can_eat_alives: pygame.draw.circle(game, (255, 0, 0), (int(self.x), int(self.y)), 10, 0)
-        if self.can_eat_deads: pygame.draw.circle(game, (100, 100, 100), (int(self.x+5), int(self.y+5)), 8, 0)
-        if self.can_photosynthesize: pygame.draw.circle(game, (0, 255, 0), (int(self.x-5), int(self.y-5)), 8, 0)
-
-        if self.hp > 0: game.blit(font.render(str(int(self.hp)), 0, (250, 250, 250)), [self.x, self.y])
+        if self.can_eat_alives: pygame.draw.circle(game, (255, 0, 0), (circle_x, circle_y), 10, 0)
+        if self.can_eat_deads: pygame.draw.circle(game, (100, 100, 100), (circle_x + 5, circle_y + 5), 8, 0)
+        if self.can_photosynthesize: pygame.draw.circle(game, (0, 255, 0), (circle_x-5, circle_y - 5), 8, 0)
 
     def show_parameters(self):
         temp_dict = self.__dict__.copy()
@@ -293,7 +303,8 @@ class Biotic:
         return (common_count / min_length) / 2 ** (dif_length-1)
 
     def movement_factor(self):
-        return (self.hp / (self.marker_size * 2)) / ((self.food_in_stomach_for_hunger_count / self.marker_size * 1.5) * ((self.marker_size - 9.9) / 90) + 0.0001)
+        return (self.hp / (self.marker_size * 2)) / ((self.food_in_stomach_for_hunger_count / self.marker_size * 1.5) *
+                                                     ((self.marker_size - 9.9) / 90) + 0.0001)
 
     def update(self):
         global entities, died_entities
@@ -308,7 +319,7 @@ class Biotic:
                 self.hp = 0
 
             self.move()
-            #can make a loop with checking for 'can' in getattr __name__
+
             for parameter in self.start_codons:
                 char_name = self.start_codons[parameter][11:]
                 action = self.__dict__.get(char_name, False)
@@ -330,8 +341,8 @@ class Biotic:
 
         else:
             self.marker_size -= self.marker_size / 100 + 0.5
-            try: self.color = (self.color[0]//1.01, self.color[1]//1.01, self.color[2]//1.01)
-            except: self.color = (125, 125, 125)
+            self.color = (self.color[0]//1.01, self.color[1]//1.01, self.color[2]//1.01)
+            # except e as ex: self.color = (125, 125, 125)
 
     # DNA block
     def dna_sequencing(self):
@@ -345,7 +356,7 @@ class Biotic:
         if self.create_new_entity and self.hp > self.marker_size:
             global start_marker_size
             new_dna: str = ''
-            self.temp_dna=''
+            self.temp_dna = ''
             for i in range(self.dna_len):
                 if self.dna[i:i+3] == start_codon and finish_codon in self.dna[i:]:
                     self.temp_dna = self.dna[i:]
@@ -363,7 +374,9 @@ class Biotic:
                 new_dna += codon
                 if finish_codon in self.temp_dna[:5] and not (finish_codon in self.temp_dna[5:]):
                     new_dna += self.temp_dna[3:5]
-                    entities.append(Biotic(x=self.x + 10, y=self.y + 10, dna=new_dna, id=self.id + '-', color=self.color, marker_size=self.marker_size/50+start_marker_size))
+                    entities.append(Biotic(x=self.x + 10, y=self.y + 10,
+                                           dna=new_dna, id=self.id + '-',
+                                           color=self.color, marker_size=self.marker_size/50+start_marker_size))
                     self.number_of_descendants += 1
                     break
                 self.temp_dna = self.temp_dna[3:]
@@ -373,7 +386,7 @@ class Biotic:
             self.when_ready_to_create = 500
             self.when_ready_to_die -= 1
 
-    def add_characteristic(self, char_name, finish_codon): # it must work. try it, dont delete old code till itll be perfect
+    def add_characteristic(self, char_name, finish_codon):
         if 'bool_' in char_name[:7]:
             char_i_factor = float(char_name[5:7]) / 10
             char_bigger_then = float(char_name[8:10]) / 10
@@ -385,7 +398,6 @@ class Biotic:
                     codon = self.temp_dna[:3]
                     if finish_codon in codon + self.temp_dna[3:5]:
                         setattr(self, char_name, (sum_nucs - i * char_i_factor > char_bigger_then))
-                        # print(char_name, "is = ", sum_nucs, i, char_i_factor, " == ", sum_nucs - i * char_i_factor, " > ", char_bigger_then, "is", sum_nucs - i * char_i_factor > char_bigger_then)
                         break
                     self.temp_dna = self.temp_dna[3:]
                     codon = int(codon)
@@ -396,7 +408,7 @@ class Biotic:
             char_max_value = int(char_name[6:9])
             char_name = char_name[10:]
             attr = self.__dict__.get(char_name, False)
-            if not attr: # getattr(self, char_name) == 0.1 or getattr(self, char_name) == (125, 125, 125):
+            if not attr:
                 nums = []
                 sum_nums: int
                 mean_nums: int
@@ -416,9 +428,11 @@ class Biotic:
                             median_nums = nums[len_nums // 2]
                         if char_num_of_nums == 1:
                             char_max_value = float(char_max_value)/10
-                            char_value = (float(median_nums) / 330 - 0.5) * char_max_value  #float(sum_nums) % (char_max_value * 2.0) - char_max_value   # ((sum_nums - len_nums * 4.5) / 45 - 0.5) % char_max_value
+                            char_value = (float(median_nums) / 330 - 0.5) * char_max_value
                         else:
-                            char_value = [sum_nums % char_max_value, mean_nums % char_max_value, median_nums % char_max_value]
+                            char_value = [sum_nums % char_max_value,
+                                          mean_nums % char_max_value,
+                                          median_nums % char_max_value]
                             char_value = char_value[:char_num_of_nums]
                         setattr(self, char_name, char_value)
                         break
@@ -428,11 +442,9 @@ class Biotic:
     # AI block
     def eat_alives(self):
         for entity_2 in entities:
-            if entity_2.alive and self.sibling_blood_score(entity_2.id) < self.when_is_sibling and self.interact(entity_2.x, entity_2.y, entity_2.marker_size):
+            if (entity_2.alive and self.sibling_blood_score(entity_2.id) < self.when_is_sibling
+                    and self.interact(entity_2.x, entity_2.y, entity_2.marker_size)):
                 # check if it will work without index control and this code.
-                # if self.marker_size > entity_2.marker_size:
-                #     self.food_in_stomach_for_hunger_count += entity_2.marker_size / 60 + 1
-                #     entity_2.marker_size -= entity_2.marker_size / 60 + 1
                 if self.marker_size < entity_2.marker_size and entity_2.can_eat_alives:
                     self.hp -= self.marker_size / 10 + 1
                     entity_2.food_in_stomach_for_hunger_count += self.marker_size / 10 + 1
@@ -445,7 +457,8 @@ class Biotic:
 
     def eat_deads(self):
         for entity_2 in entities:
-            if not entity_2.alive and self.sibling_blood_score(entity_2.id) < self.when_is_sibling * 2 and self.interact(entity_2.x, entity_2.y, entity_2.marker_size):
+            if (not entity_2.alive and self.sibling_blood_score(entity_2.id) < self.when_is_sibling * 2
+                    and self.interact(entity_2.x, entity_2.y, entity_2.marker_size)):
                 if self.marker_size > entity_2.marker_size:
                     self.food_in_stomach_for_hunger_count += entity_2.marker_size / 30 + 1
                     entity_2.marker_size -= entity_2.marker_size / 30 + 1
@@ -454,8 +467,13 @@ class Biotic:
                     entity_2.marker_size -= entity_2.marker_size / 50 + 1
 
     def photosynthesize(self):
-        # make smth for sunlight imitation
-        if self.x ** 2 + self.y ** 2 < 40000 or self.x ** 2 + self.y ** 2 > 1440000 ** 2:
+        # make smth for better sunlight imitation
+
+        global field_size
+        if (field_size * 0.2 < self.x < field_size * 0.3
+                or field_size * 0.45 < self.x < field_size * 0.55
+                or field_size * 0.7 < self.x < field_size * 0.8
+                or field_size * 0.45 < self.y < field_size * 0.55):
             self.food_in_stomach_for_hunger_count += 0.5
 
     def hunger(self):
@@ -484,20 +502,25 @@ class Biotic:
     def move(self):
         global entities, field_size
 
+        # Need to make smth for plants, and other mooving when stomach is full
+        if self.food_in_stomach_for_hunger_count > self.marker_size * 1.25: return None
         # Determine the new velocity based on some conditions
         if self.can_eat_alives or self.can_eat_deads:
             closest_entity = None
             closest_distance = float('inf')
             for entity_2 in entities:
-                if (entity_2.alive and self.can_eat_alives and self.sibling_blood_score(entity_2.id) < self.when_is_sibling) or (
-                        not entity_2.alive and self.can_eat_deads and self.sibling_blood_score(entity_2.id) < self.when_is_sibling * 2):
+                if ((entity_2.alive and self.can_eat_alives
+                        and self.sibling_blood_score(entity_2.id) < self.when_is_sibling)
+                    or (not entity_2.alive and self.can_eat_deads
+                        and self.sibling_blood_score(entity_2.id) < self.when_is_sibling * 2)):
                     distance = ((entity_2.x - self.x) ** 2 + (entity_2.y - self.y) ** 2) ** 0.5 + 0.001
                     if distance < closest_distance:
                         closest_distance = distance
                         closest_entity = entity_2
 
             if closest_entity:
-                if closest_entity.can_eat_alives and closest_entity.marker_size > self.marker_size: closest_distance *= -1
+                if closest_entity.can_eat_alives and closest_entity.marker_size > self.marker_size:
+                    closest_distance *= -1
                 m_f = self.movement_factor()
 
                 self.vel_x = (closest_entity.x - self.x) / closest_distance * self.max_velocity[0] * m_f
@@ -533,17 +556,17 @@ class Biotic:
 
 
 pygame.init()
-win = pygame.display.set_mode((field_size*1.1, field_size*1.1))
+win = pygame.display.set_mode((window_size*1.1, window_size*1.1))
 pygame.display.set_caption('Ecosystem')
-game = pygame.Surface((field_size, field_size))
-info_string = pygame.Surface((field_size, field_size/19.2))
+game = pygame.Surface((window_size, window_size))
+info_string = pygame.Surface((window_size, window_size/19.2))
 
 win.fill((100, 100, 100))
 
 clock=pygame.time.Clock()
 pygame.key.set_repeat(200, 50)
 
-pygame.font.init() # инициализируем шрифты
+pygame.font.init()  # инициализируем шрифты
 font = pygame.font.SysFont('arial', 15)
 # ['arial', 'arialblack', 'bahnschrift', 'calibri', 'cambria', 'cambriamath', 'candara', 'comicsansms', 'consolas', 'constantia', 'corbel', 'couriernew', 'ebrima', 'franklingothicmedium', 'gabriola', 'gadugi', 'georgia', 'impact', 'inkfree', 'javanesetext', 'leelawadeeui', 'leelawadeeuisemilight', 'lucidaconsole', 'lucidasans', 'malgungothic', 'malgungothicsemilight', 'microsofthimalaya', 'microsoftjhenghei', 'microsoftjhengheiui', 'microsoftnewtailue', 'microsoftphagspa', 'microsoftsansserif', 'microsofttaile', 'microsoftyahei', 'microsoftyaheiui', 'microsoftyibaiti', 'mingliuextb', 'pmingliuextb', 'mingliuhkscsextb', 'mongolianbaiti', 'msgothic', 'msuigothic', 'mspgothic', 'mvboli', 'myanmartext', 'nirmalaui', 'nirmalauisemilight', 'palatinolinotype', 'sansserifcollection', 'segoefluenticons', 'segoemdl2assets', 'segoeprint', 'segoescript', 'segoeui', 'segoeuiblack', 'segoeuiemoji', 'segoeuihistoric', 'segoeuisemibold', 'segoeuisemilight', 'segoeuisymbol', 'segoeuivariable', 'simsun', 'nsimsun', 'simsunextb', 'sitkatext', 'sylfaen', 'symbol', 'tahoma', 'timesnewroman', 'trebuchetms', 'verdana', 'webdings', 'wingdings', 'yugothic', 'yugothicuisemibold', 'yugothicui', 'yugothicmedium', 'yugothicuiregular', 'yugothicregular', 'yugothicuisemilight', 'holomdl2assets', 'agencyfbполужирный', 'agencyfb', 'algerian', 'bookantiquaполужирный', 'bookantiquaполужирныйкурсив', 'bookantiquaкурсив', 'arialполужирный', 'arialполужирныйкурсив', 'arialкурсив', 'arialrounded', 'baskervilleoldface', 'bauhaus93', 'bell', 'bellполужирный', 'bellкурсив', 'bernardcondensed', 'bookantiqua', 'bodoniполужирный', 'bodoniполужирныйкурсив', 'bodoniblackкурсив', 'bodoniblack', 'bodonicondensedполужирный', 'bodonicondensedполужирныйкурсив', 'bodonicondensedкурсив', 'bodonicondensed', 'bodoniкурсив', 'bodonipostercompressed', 'bodoni', 'bookmanoldstyle', 'bookmanoldstyleполужирный', 'bookmanoldstyleполужирныйкурсив', 'bookmanoldstyleкурсив', 'bradleyhanditc', 'britannic', 'berlinsansfbполужирный', 'berlinsansfbdemiполужирный', 'berlinsansfb', 'broadway', 'brushscriptкурсив', 'bookshelfsymbol7', 'californianfbполужирный', 'californianfbкурсив', 'californianfb', 'calisto', 'calistoполужирный', 'calistoполужирныйкурсив', 'calistoкурсив', 'castellar', 'centuryschoolbook', 'centaur', 'century', 'chiller', 'colonna', 'cooperblack', 'copperplategothic', 'curlz', 'dubai', 'dubaimedium', 'dubairegular', 'elephant', 'elephantкурсив', 'engravers', 'erasitc', 'erasdemiitc', 'erasmediumitc', 'felixtitling', 'forte', 'franklingothicbook', 'franklingothicbookкурсив', 'franklingothicdemi', 'franklingothicdemicond', 'franklingothicdemiкурсив', 'franklingothicheavy', 'franklingothicheavyкурсив', 'franklingothicmediumcond', 'freestylescript', 'frenchscript', 'footlight', 'garamond', 'garamondполужирный', 'garamondкурсив', 'gigi', 'gillsansполужирныйкурсив', 'gillsansполужирный', 'gillsanscondensed', 'gillsansкурсив', 'gillsansultracondensed', 'gillsansultra', 'gillsans', 'gloucesterextracondensed', 'gillsansextcondensed', 'centurygothic', 'centurygothicполужирный', 'centurygothicполужирныйкурсив', 'centurygothicкурсив', 'goudyoldstyle', 'goudyoldstyleполужирный', 'goudyoldstyleкурсив', 'goudystout', 'harlowsolid', 'harrington', 'haettenschweiler', 'hightowertext', 'hightowertextкурсив', 'imprintshadow', 'informalroman', 'blackadderitc', 'edwardianscriptitc', 'kristenitc', 'jokerman', 'juiceitc', 'kunstlerscript', 'widelatin', 'lucidabright', 'lucidacalligraphy', 'leelawadee', 'leelawadeeполужирный', 'lucidafaxregular', 'lucidafax', 'lucidahandwriting', 'lucidasansregular', 'lucidasansroman', 'lucidasanstypewriterregular', 'lucidasanstypewriter', 'lucidasanstypewriteroblique', 'magnetoполужирный', 'maiandragd', 'maturascriptcapitals', 'mistral', 'modernno20', 'microsoftuighurполужирный', 'microsoftuighur', 'monotypecorsiva', 'extra', 'niagaraengraved', 'niagarasolid', 'ocraextended', 'oldenglishtext', 'onyx', 'msoutlook', 'palacescript', 'papyrus', 'parchment', 'perpetuaполужирныйкурсив', 'perpetuaполужирный', 'perpetuaкурсив', 'perpetuatitlingполужирный', 'perpetuatitling', 'perpetua', 'playbill', 'poorrichard', 'pristina', 'rage', 'ravie', 'msreferencesansserif', 'msreferencespecialty', 'rockwellcondensedполужирный', 'rockwellcondensed', 'rockwell', 'rockwellполужирный', 'rockwellполужирныйкурсив', 'rockwellextra', 'rockwellкурсив', 'centuryschoolbookполужирный', 'centuryschoolbookполужирныйкурсив', 'centuryschoolbookкурсив', 'script', 'showcardgothic', 'snapitc', 'stencil', 'twcenполужирныйкурсив', 'twcenполужирный', 'twcencondensedполужирный', 'twcencondensedextra', 'twcencondensed', 'twcenкурсив', 'twcen', 'tempussansitc', 'vinerhanditc', 'vivaldiкурсив', 'vladimirscript', 'wingdings2', 'wingdings3']
 # print(pygame.font.get_fonts())
@@ -557,47 +580,46 @@ while play:
         if e.type == pygame.QUIT: play = False
         if e.type == pygame.KEYDOWN:
             if e.key == pygame.K_ESCAPE: play = False
-            if e.key == pygame.K_SPACE: painting = not painting
+            if e.key == pygame.K_SPACE: not_pause = not not_pause
+            if e.key == pygame.K_p: painting = not painting
             if e.key == pygame.K_r:
                 print("\n\n RESTART")
                 eco_start()
             if e.key == pygame.K_UP and stopper < 400: stopper -= 10
             if e.key == pygame.K_DOWN and stopper > 0: stopper += 10
-        if not painting and e.type == pygame.MOUSEBUTTONDOWN:
+        if not not_pause and e.type == pygame.MOUSEBUTTONDOWN:
             mouse_xy = pygame.mouse.get_pos()
             mouse_xy = (mouse_xy[0]-25, mouse_xy[1]-25)
             pygame.draw.circle(game, (255, 255, 255), mouse_xy, 2, 0)
             win.blit(game, (25, 25))
             pygame.display.update()
+            mouse_xy = (mouse_xy[0] / field_x_window, mouse_xy[1] / field_x_window)
+
             for entity in entities:
                 if entity.interact(mouse_xy[0], mouse_xy[1]):
                     entity.show_parameters()
                     break
 
-    if painting:
-        if len(entities) == 0:
-            print("\n\n RESTART\t Gen =", generations_counter)
-            pygame.time.delay(int(stopper)*100)
-            eco_start()
+    if not_pause:
+        if painting:
+            if len(entities) == 0:
+                print("\n\n RESTART\t Gen =", generations_counter)
+                pygame.time.delay(int(stopper)*100)
+                eco_start()
+            else:
+                game.fill((30, 30, 30))
+                for entity in entities:
+                    entity.update()
+                    entity.draw_circle()
+                drawing()
+                pygame.time.delay(int(stopper))
         else:
-            game.fill((30, 30, 30))
-            for entity in entities:
-                # entity.dna_sequencing()
-                entity.update()
-                entity.draw_circle()
-            drawing()
-            pygame.time.delay(int(stopper))
+            if len(entities) == 0:
+                print("\n\n RESTART\t Gen =", generations_counter)
+                eco_start()
+            else:
+                for entity in entities:
+                    entity.update()
 
 save_dna_to_file(entities, died_entities, num_of_entities_for_saving)
 pygame.quit()
-
-
-# Traceback (most recent call last):
-#   File "C:\Programming\ecosystem\ecosystem_DNA.py", line 568, in <module>
-#     entity.update()
-#   File "C:\Programming\ecosystem\ecosystem_DNA.py", line 267, in update
-#     self.move()
-#   File "C:\Programming\ecosystem\ecosystem_DNA.py", line 490, in move
-#     self.vel_x = (closest_entity.x - self.x) / closest_distance * self.max_velocity_x * m_f
-#                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
-# ZeroDivisionError: float division by zero
