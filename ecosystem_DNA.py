@@ -24,7 +24,7 @@ field_x_window: float = window_size / field_size
 # Start nums
 start_DNA_len: int = 1000
 start_num_of_entities: int = 100
-start_num_of_old_entities: int = 1
+start_num_of_old_entities: int = 5
 num_of_entities_for_saving: int = 100
 start_marker_size: int = 25
 
@@ -33,7 +33,7 @@ mutation_rate: float = 0.05
 not_pause: bool = True
 painting: bool = True
 play: bool = True
-stopper: int = 50
+stopper: int = 30
 generations_counter: int = 0
 
 
@@ -109,6 +109,7 @@ def codon_mutation(codon):
 
 
 def save_dna_to_file(a_entities, d_entities, num_for_saving):
+    global field_size
     # Create a dictionary to map entity IDs to their corresponding wellness scores
     entity_dict = defaultdict(lambda: {"number_of_descendants": 0, "children": []})
 
@@ -140,8 +141,8 @@ def save_dna_to_file(a_entities, d_entities, num_for_saving):
     # Collect current entities with their updated wellness scores
     current_entities = [(entity_dict[entity.id]["number_of_descendants"] * entity.how_long_living, entity.dna) for entity in a_entities + d_entities]
 
-    # Open best_dna.txt file and read existing entries
-    best_entities = read_dna_from_file()
+    # Open Before_field_best_dna.txt file and read existing entries
+    best_entities = read_dna_from_file(str(field_size))
     # Combine current entities with those from the file and sort by wellness score
     best_entities.extend(current_entities)
     best_entities = sorted(best_entities, key=lambda x: x[1], reverse=False)
@@ -154,17 +155,19 @@ def save_dna_to_file(a_entities, d_entities, num_for_saving):
             prev = item[1]
 
     best_entities_uniq = sorted(best_entities_uniq, key=lambda x: x[0], reverse=True)[:num_for_saving]
-    # Save the top 10 entities to best_dna.txt file
-    with open("best_dna.txt", 'w') as file:
+    # Save the top 10 entities to Before_field_best_dna.txt file
+    with open("Field_" + str(field_size) + "Before_field_best_dna.txt", 'w') as file:
         for wellness, dna in best_entities_uniq:
-            if wellness > 0: file.write(f"{int(wellness)}\t\t{dna}\n")
+            if wellness > 0:
+                file.write(f"{int(wellness)}\t\t{dna}\n")
+                print("Saved dna with wellness =", wellness)
     file.close()
 
 
-def read_dna_from_file():
+def read_dna_from_file(f_size='0'):
     old_entities = []
     try:
-        with open("best_dna.txt", 'r') as file:
+        with open("Field_" + f_size + "Before_field_best_dna.txt", 'r') as file:
             lines = file.readlines()
             for line in lines:
                 wellness, dna = line.strip().split('\t\t')
@@ -564,7 +567,7 @@ info_string = pygame.Surface((window_size, window_size/19.2))
 
 win.fill((100, 100, 100))
 
-clock=pygame.time.Clock()
+clock = pygame.time.Clock()
 pygame.key.set_repeat(200, 50)
 
 pygame.font.init()  # инициализируем шрифты
@@ -575,7 +578,7 @@ font = pygame.font.SysFont('arial', 15)
 eco_start()
 
 while play:
-    clock.tick(60)
+    clock.tick(0)
 
     for e in pygame.event.get():
         if e.type == pygame.QUIT: play = False
@@ -586,8 +589,13 @@ while play:
             if e.key == pygame.K_r:
                 print("\n\n RESTART")
                 eco_start()
-            if e.key == pygame.K_UP and stopper < 400: stopper -= 10
-            if e.key == pygame.K_DOWN and stopper > 0: stopper += 10
+            if e.key == pygame.K_UP and stopper > 0:
+                stopper //= 1.1
+                print(stopper)
+            if e.key == pygame.K_DOWN and stopper < 400:
+                stopper = int(stopper * 1.1) + 1
+                print(stopper)
+
         if not not_pause and e.type == pygame.MOUSEBUTTONDOWN:
             mouse_xy = pygame.mouse.get_pos()
             mouse_xy = (mouse_xy[0]-25, mouse_xy[1]-25)

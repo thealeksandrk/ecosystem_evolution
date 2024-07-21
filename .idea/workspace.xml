@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7930c735-678a-4c15-a1fa-5d12522b837b" name="Changes" comment="nothing">
+    <list default="true" id="7930c735-678a-4c15-a1fa-5d12522b837b" name="Changes" comment="now having 'can' have a price">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ecosystem_DNA.py" beforeDir="false" afterPath="$PROJECT_DIR$/ecosystem_DNA.py" afterDir="false" />
     </list>
@@ -40,19 +40,19 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.ballevo.executor": "Run",
-    "Python.ecosystem_DNA.executor": "Run",
-    "Python.ecosystem_reg1.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Programming/ecosystem",
-    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable",
-    "two.files.diff.last.used.file": "C:/Programming/ecosystem/ecosystem_reg1.py"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.ballevo.executor&quot;: &quot;Run&quot;,
+    &quot;Python.ecosystem_DNA.executor&quot;: &quot;Run&quot;,
+    &quot;Python.ecosystem_reg1.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Programming/ecosystem&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;,
+    &quot;two.files.diff.last.used.file&quot;: &quot;C:/Programming/ecosystem/ecosystem_reg1.py&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -111,13 +111,29 @@
       <option name="presentableId" value="LOCAL−00006" />
       <updated>1721472087086</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL−00007" summary="field is much bigger, added no painting mode">
+      <option name="closed" value="true" />
+      <created>1721477786983</created>
+      <option name="number" value="LOCAL−00007" />
+      <option name="presentableId" value="LOCAL−00007" />
+      <updated>1721477786983</updated>
+    </task>
+    <task id="LOCAL−00008" summary="now having 'can' have a price">
+      <option name="closed" value="true" />
+      <created>1721479654083</created>
+      <option name="number" value="LOCAL−00008" />
+      <option name="presentableId" value="LOCAL−00008" />
+      <updated>1721479654083</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="works just mass changing and replication" />
     <MESSAGE value="works, but i want to make field bigger" />
     <MESSAGE value="nothing" />
-    <option name="LAST_COMMIT_MESSAGE" value="nothing" />
+    <MESSAGE value="field is much bigger, added no painting mode" />
+    <MESSAGE value="now having 'can' have a price" />
+    <option name="LAST_COMMIT_MESSAGE" value="now having 'can' have a price" />
   </component>
 </project>
