@@ -1,9 +1,8 @@
 # Need to think how to make AI without AI
 # Mb make DNA - Gen - Protein - char - smhow AI
+import math
 
-# After making more methods -> start with a big start num and don't draw them.
-
-
+# Try to add more hormons
 
 
 # Imports
@@ -17,14 +16,16 @@ from collections import defaultdict
 # Start arrays
 entities = []
 died_entities = []
+where_is_sun = []
 # Field
-field_size: int = 7500  # for entities xy
+field_size: int = 750  # for entities xy
 window_size: int = 750  # 800 too big for me
 field_x_window: float = window_size / field_size
+
 # Start nums
 start_DNA_len: int = 1000
-start_num_of_entities: int = 100
-start_num_of_old_entities: int = 5
+start_num_of_entities: int = 10
+start_num_of_old_entities: int = 0
 num_of_entities_for_saving: int = 100
 start_marker_size: int = 25
 
@@ -35,6 +36,9 @@ painting: bool = True
 play: bool = True
 stopper: int = 30
 generations_counter: int = 0
+
+# Math
+Pi_2: float = 2 * math.pi
 
 
 # Functions
@@ -79,7 +83,8 @@ def drawing():
 def drawstring():
     global entities, died_entities, generations_counter
     info_string.fill((100, 100, 100))
-    info_string.blit(font.render("FPS " + str(int(clock.get_fps())), 0, (250, 250, 250)), [0, 0])
+    try: info_string.blit(font.render("FPS " + str(int(clock.get_fps())), 0, (250, 250, 250)), [0, 0])
+    except Exception as ex: info_string.blit(font.render("FPS  inf", 0, (250, 250, 250)), [0, 0])
     info_string.blit(font.render("N of Cells " + str(len(entities)), 0, (250, 250, 250)), [100, 0])
     info_string.blit(font.render("N of Dead cells " + str(len(died_entities)), 0, (250, 250, 250)), [200, 0])
     info_string.blit(font.render("Generation N " + str(generations_counter), 0, (250, 250, 250)), [500, 0])
@@ -191,8 +196,6 @@ class Biotic:
         self.mutation_rate: float = parent.get('mutation_rate', mutation_rate)
         self.when_ready_to_create: int = parent.get('when_ready_to_create', 100)
         self.when_ready_to_die: int = parent.get('when_ready_to_die', 10)
-        # self.max_velocity_x: float = parent.get('max_velocity_x', 0)
-        # self.max_velocity_y: float = parent.get('max_velocity_y', 0)
         self.vel_x: float = parent.get('vel_x', rand(-2, 2))
         self.vel_y: float = parent.get('vel_y', rand(-2, 2))
         self.food_in_stomach_for_hunger_count: float = parent.get('hunger_count', self.marker_size)
@@ -201,32 +204,26 @@ class Biotic:
         self.number_of_descendants: int = 0
         self.how_long_living: int = 0
 
-        # Checkers
-        # self.can_eat_alives: bool = parent.get('can_eat_alives', False)
-        # self.can_eat_deads: bool = parent.get('can_eat_deads', False)
-        # self.can_photosynthesize: bool = parent.get('can_photosynthesize', False)
         # Control bools
         self.alive: bool = True
         self.create_new_entity: bool = False
-        # self.def_color_change: bool = True
-        # self.def_can_eat_alives: bool = True
-        # self.def_can_eat_deads: bool = True
-        # self.def_can_photosynthesize: bool = True
-        # self.def_mass_change_counter: bool = True
-        # self.def_max_velocity_xy: bool = True
 
         # Codons must be the last here for normal parameters printing
         # 0** - most important
         # 1** - nums and factors for ai
         # 2** - Bools for funcs
-        ## Naming: 'num' + num of nums (1) + max value (3) + name       Between '_'   | if num of nums=1 max value will /10 float
-        ##    or 'bool' + i_factor (2/10) + bigger then (2/10) + name       Between '_' | if for def - part after 'can_' must be same as def name
+        # Naming: 'num' + num of nums (1) + max value (3) + name
+        # Between '_'   | if num of nums=1 max value will /10 float
+        #    or 'bool' + i_factor (2/10) + bigger then (2/10) + name
+        #    Between '_' | if for def - part after 'can_' must be same as def name
         self.start_codons = {
             '000': 'bool_00_00_can_replication',
 
             '100': 'num_1_045_mass_change_factor',
             '101': 'num_2_010_max_velocity',
             '102': 'num_3_256_color',
+            '103': 'num_1_062_vision_angle',
+            '110': 'num_1_999_vision_distance',  # it will be 10 times bigger
 
             '200': 'bool_45_00_can_eat_alives',
             '201': 'bool_45_00_can_eat_deads',
@@ -238,6 +235,8 @@ class Biotic:
             '100': '332',
             '101': '331',
             '102': '330',
+            '103': '320',
+            '110': '313',
 
             '200': '323',
             '201': '322',
@@ -297,6 +296,24 @@ class Biotic:
             return True
         else:
             return False
+
+    def is_in_sight(self, entity2):
+        global Pi_2
+        dx = entity2.x - self.x
+        dy = entity2.y - self.y
+        distance = dx ** 2 + dy ** 2
+        if distance > (self.vision_distance * 10) ** 2:
+            return False
+        angle = math.atan2(dy, dx) % Pi_2
+        vision_angle_start = (self.get_orientation() - self.vision_angle / 2) % Pi_2
+        vision_angle_end = (self.get_orientation() + self.vision_angle / 2) % Pi_2
+        if vision_angle_start < vision_angle_end:
+            return vision_angle_start <= angle <= vision_angle_end
+        else:  # Случай, когда угол зрения пересекает 0 градусов
+            return angle >= vision_angle_start or angle <= vision_angle_end
+
+    def get_orientation(self):
+        return math.atan2(self.vel_y, self.vel_x)
 
     def sibling_blood_score(self, second_id):
         # score not by id, but by dna simularity*id_sim
@@ -472,16 +489,20 @@ class Biotic:
 
     def photosynthesize(self):
         # make smth for better sunlight imitation
-
-        global field_size
-        if (field_size * 0.2 < self.x < field_size * 0.3
-                or field_size * 0.45 < self.x < field_size * 0.55
-                or field_size * 0.7 < self.x < field_size * 0.8
-                or field_size * 0.45 < self.y < field_size * 0.55):
-            self.food_in_stomach_for_hunger_count += 0.5
+        global where_is_sun
+        is_in_sun = False
+        for place in where_is_sun:
+            if place.free_sun_amount > 0 and self.interact(place.x, place.y, place.r):
+                is_in_sun = True
+                place.update_free_sun_amount(self.marker_size)
+                break
+        print(self.max_velocity[0] + self.max_velocity[1])
+        self.food_in_stomach_for_hunger_count += 10 * is_in_sun / (self.max_velocity[0] + self.max_velocity[1] + 0.1)  # 0.35
 
     def hunger(self):
-        self.food_in_stomach_for_hunger_count -= 0.04 + self.marker_size/500 + 0.02 * len(self.dict_can_attr)
+        hunger_count = 0.04 + self.marker_size/500 + 0.03 * (len(self.dict_can_attr)-1) + 0.01 * (abs(self.vel_x) + abs(self.vel_y))
+        # print(hunger_count)
+        self.food_in_stomach_for_hunger_count -= hunger_count
         self.hp += 0.5
         if self.food_in_stomach_for_hunger_count < self.marker_size/2:
             self.hp -= 1
@@ -504,17 +525,17 @@ class Biotic:
             self.hp -= 1
 
     def move(self):
-        global entities, field_size
+        global entities, field_size, where_is_sun
 
         # Need to make smth for plants, and other mooving when stomach is full
         if self.food_in_stomach_for_hunger_count > self.marker_size * 1.25: return None
         # Determine the new velocity based on some conditions
+        closest_distance = float('inf')
         if self.can_eat_alives or self.can_eat_deads:
             closest_entity = None
-            closest_distance = float('inf')
             for entity_2 in entities:
-                if ((entity_2.alive and self.can_eat_alives
-                        and self.sibling_blood_score(entity_2.id) < self.when_is_sibling)
+                if self.is_in_sight(entity_2) and ((entity_2.alive and self.can_eat_alives
+                    and self.sibling_blood_score(entity_2.id) < self.when_is_sibling)
                     or (not entity_2.alive and self.can_eat_deads
                         and self.sibling_blood_score(entity_2.id) < self.when_is_sibling * 2)):
                     distance = ((entity_2.x - self.x) ** 2 + (entity_2.y - self.y) ** 2) ** 0.5 + 0.001
@@ -529,6 +550,26 @@ class Biotic:
 
                 self.vel_x = (closest_entity.x - self.x) / closest_distance * self.max_velocity[0] * m_f
                 self.vel_y = (closest_entity.y - self.y) / closest_distance * self.max_velocity[1] * m_f
+
+            if self.vel_x > self.max_velocity[0]: self.vel_x = self.max_velocity[0]
+            elif self.vel_x < -self.max_velocity[0]: self.vel_x = -self.max_velocity[0]
+            if self.vel_y > self.max_velocity[1]: self.vel_y = self.max_velocity[1]
+            elif self.vel_y < -self.max_velocity[1]: self.vel_y = -self.max_velocity[1]
+
+        if self.can_photosynthesize:
+            closest_sun = None
+            for place in where_is_sun:
+                if place.free_sun_amount > 0:
+                    distance = ((place.x - self.x) ** 2 + (place.y - self.y) ** 2) ** 0.5 - place.r / 2
+                    if distance < closest_distance:
+                        closest_distance = distance
+                        closest_sun = place
+
+            if closest_sun:
+                m_f = self.movement_factor()
+                if closest_distance == 0: closest_distance = 1000
+                self.vel_x = (closest_sun.x - self.x) / closest_distance * self.max_velocity[0] * m_f
+                self.vel_y = (closest_sun.y - self.y) / closest_distance * self.max_velocity[1] * m_f
 
             if self.vel_x > self.max_velocity[0]: self.vel_x = self.max_velocity[0]
             elif self.vel_x < -self.max_velocity[0]: self.vel_x = -self.max_velocity[0]
@@ -553,10 +594,31 @@ class Biotic:
             self.y = field_size - self.marker_size
             self.vel_y *= -1
 
-    # make vision func !!!
     # Add variables for movement, like braveness, etc
     # add control what to do - hunt to small or run from big and braveness
     # chane hunt func to cooperate factor and size*braveness
+
+
+class Abiotic:
+    def __init__(self, x=0, y=0, r=0, sun_amount=0, place_type='sun'):
+        self.x: int = x
+        self.y: int = y
+        self.r: int = r
+        self.sun_amount: int = sun_amount
+        self.free_sun_amount: int = sun_amount
+        self.type: str = place_type
+        self.color = (125, 125, 0)
+
+    def draw_circle(self):
+        global field_x_window
+        # can draw smaller, to save space
+        circle_x = int(self.x * field_x_window)
+        circle_y = int(self.y * field_x_window)
+        circle_r = self.r * field_x_window  # Check mb need to *2 or 3, if too small
+        pygame.draw.circle(game, self.color, (circle_x, circle_y), circle_r, 0)
+
+    def update_free_sun_amount(self, entity_marker_size):
+        self.free_sun_amount -= entity_marker_size
 
 
 pygame.init()
@@ -574,6 +636,10 @@ pygame.font.init()  # инициализируем шрифты
 font = pygame.font.SysFont('arial', 15)
 # ['arial', 'arialblack', 'bahnschrift', 'calibri', 'cambria', 'cambriamath', 'candara', 'comicsansms', 'consolas', 'constantia', 'corbel', 'couriernew', 'ebrima', 'franklingothicmedium', 'gabriola', 'gadugi', 'georgia', 'impact', 'inkfree', 'javanesetext', 'leelawadeeui', 'leelawadeeuisemilight', 'lucidaconsole', 'lucidasans', 'malgungothic', 'malgungothicsemilight', 'microsofthimalaya', 'microsoftjhenghei', 'microsoftjhengheiui', 'microsoftnewtailue', 'microsoftphagspa', 'microsoftsansserif', 'microsofttaile', 'microsoftyahei', 'microsoftyaheiui', 'microsoftyibaiti', 'mingliuextb', 'pmingliuextb', 'mingliuhkscsextb', 'mongolianbaiti', 'msgothic', 'msuigothic', 'mspgothic', 'mvboli', 'myanmartext', 'nirmalaui', 'nirmalauisemilight', 'palatinolinotype', 'sansserifcollection', 'segoefluenticons', 'segoemdl2assets', 'segoeprint', 'segoescript', 'segoeui', 'segoeuiblack', 'segoeuiemoji', 'segoeuihistoric', 'segoeuisemibold', 'segoeuisemilight', 'segoeuisymbol', 'segoeuivariable', 'simsun', 'nsimsun', 'simsunextb', 'sitkatext', 'sylfaen', 'symbol', 'tahoma', 'timesnewroman', 'trebuchetms', 'verdana', 'webdings', 'wingdings', 'yugothic', 'yugothicuisemibold', 'yugothicui', 'yugothicmedium', 'yugothicuiregular', 'yugothicregular', 'yugothicuisemilight', 'holomdl2assets', 'agencyfbполужирный', 'agencyfb', 'algerian', 'bookantiquaполужирный', 'bookantiquaполужирныйкурсив', 'bookantiquaкурсив', 'arialполужирный', 'arialполужирныйкурсив', 'arialкурсив', 'arialrounded', 'baskervilleoldface', 'bauhaus93', 'bell', 'bellполужирный', 'bellкурсив', 'bernardcondensed', 'bookantiqua', 'bodoniполужирный', 'bodoniполужирныйкурсив', 'bodoniblackкурсив', 'bodoniblack', 'bodonicondensedполужирный', 'bodonicondensedполужирныйкурсив', 'bodonicondensedкурсив', 'bodonicondensed', 'bodoniкурсив', 'bodonipostercompressed', 'bodoni', 'bookmanoldstyle', 'bookmanoldstyleполужирный', 'bookmanoldstyleполужирныйкурсив', 'bookmanoldstyleкурсив', 'bradleyhanditc', 'britannic', 'berlinsansfbполужирный', 'berlinsansfbdemiполужирный', 'berlinsansfb', 'broadway', 'brushscriptкурсив', 'bookshelfsymbol7', 'californianfbполужирный', 'californianfbкурсив', 'californianfb', 'calisto', 'calistoполужирный', 'calistoполужирныйкурсив', 'calistoкурсив', 'castellar', 'centuryschoolbook', 'centaur', 'century', 'chiller', 'colonna', 'cooperblack', 'copperplategothic', 'curlz', 'dubai', 'dubaimedium', 'dubairegular', 'elephant', 'elephantкурсив', 'engravers', 'erasitc', 'erasdemiitc', 'erasmediumitc', 'felixtitling', 'forte', 'franklingothicbook', 'franklingothicbookкурсив', 'franklingothicdemi', 'franklingothicdemicond', 'franklingothicdemiкурсив', 'franklingothicheavy', 'franklingothicheavyкурсив', 'franklingothicmediumcond', 'freestylescript', 'frenchscript', 'footlight', 'garamond', 'garamondполужирный', 'garamondкурсив', 'gigi', 'gillsansполужирныйкурсив', 'gillsansполужирный', 'gillsanscondensed', 'gillsansкурсив', 'gillsansultracondensed', 'gillsansultra', 'gillsans', 'gloucesterextracondensed', 'gillsansextcondensed', 'centurygothic', 'centurygothicполужирный', 'centurygothicполужирныйкурсив', 'centurygothicкурсив', 'goudyoldstyle', 'goudyoldstyleполужирный', 'goudyoldstyleкурсив', 'goudystout', 'harlowsolid', 'harrington', 'haettenschweiler', 'hightowertext', 'hightowertextкурсив', 'imprintshadow', 'informalroman', 'blackadderitc', 'edwardianscriptitc', 'kristenitc', 'jokerman', 'juiceitc', 'kunstlerscript', 'widelatin', 'lucidabright', 'lucidacalligraphy', 'leelawadee', 'leelawadeeполужирный', 'lucidafaxregular', 'lucidafax', 'lucidahandwriting', 'lucidasansregular', 'lucidasansroman', 'lucidasanstypewriterregular', 'lucidasanstypewriter', 'lucidasanstypewriteroblique', 'magnetoполужирный', 'maiandragd', 'maturascriptcapitals', 'mistral', 'modernno20', 'microsoftuighurполужирный', 'microsoftuighur', 'monotypecorsiva', 'extra', 'niagaraengraved', 'niagarasolid', 'ocraextended', 'oldenglishtext', 'onyx', 'msoutlook', 'palacescript', 'papyrus', 'parchment', 'perpetuaполужирныйкурсив', 'perpetuaполужирный', 'perpetuaкурсив', 'perpetuatitlingполужирный', 'perpetuatitling', 'perpetua', 'playbill', 'poorrichard', 'pristina', 'rage', 'ravie', 'msreferencesansserif', 'msreferencespecialty', 'rockwellcondensedполужирный', 'rockwellcondensed', 'rockwell', 'rockwellполужирный', 'rockwellполужирныйкурсив', 'rockwellextra', 'rockwellкурсив', 'centuryschoolbookполужирный', 'centuryschoolbookполужирныйкурсив', 'centuryschoolbookкурсив', 'script', 'showcardgothic', 'snapitc', 'stencil', 'twcenполужирныйкурсив', 'twcenполужирный', 'twcencondensedполужирный', 'twcencondensedextra', 'twcencondensed', 'twcenкурсив', 'twcen', 'tempussansitc', 'vinerhanditc', 'vivaldiкурсив', 'vladimirscript', 'wingdings2', 'wingdings3']
 # print(pygame.font.get_fonts())
+
+for i in range(3):
+    where_is_sun.append(Abiotic(x=rand(1, field_size), y=rand(1, field_size), r=rand(100, 300), sun_amount=200, place_type='sun'))
+
 
 eco_start()
 
@@ -610,25 +676,22 @@ while play:
                     break
 
     if not_pause:
+        if len(entities) == 0:
+            print("\n\n RESTART\t Gen =", generations_counter)
+            eco_start()
         if painting:
-            if len(entities) == 0:
-                print("\n\n RESTART\t Gen =", generations_counter)
-                pygame.time.delay(int(stopper)*100)
-                eco_start()
-            else:
-                game.fill((30, 30, 30))
-                for entity in entities:
-                    entity.update()
-                    entity.draw_circle()
-                drawing()
-                pygame.time.delay(int(stopper))
+            game.fill((30, 30, 30))
+            for place in where_is_sun:
+                place.free_sun_amount = place.sun_amount
+                place.draw_circle()
+            for entity in entities:
+                entity.update()
+                entity.draw_circle()
+            drawing()
+            pygame.time.delay(int(stopper))
         else:
-            if len(entities) == 0:
-                print("\n\n RESTART\t Gen =", generations_counter)
-                eco_start()
-            else:
-                for entity in entities:
-                    entity.update()
+            for entity in entities:
+                entity.update()
 
 save_dna_to_file(entities, died_entities, num_of_entities_for_saving)
 pygame.quit()
