@@ -161,7 +161,7 @@ def save_dna_to_file(a_entities, d_entities, num_for_saving):
 
     best_entities_uniq = sorted(best_entities_uniq, key=lambda x: x[0], reverse=True)[:num_for_saving]
     # Save the top 10 entities to Before_field_best_dna.txt file
-    with open("Field_" + str(field_size) + "Before_field_best_dna.txt", 'w') as file:
+    with open("Field_" + str(field_size) + "_best_dna.txt", 'w') as file:
         for wellness, dna in best_entities_uniq:
             if wellness > 0:
                 file.write(f"{int(wellness)}\t\t{dna}\n")
@@ -172,7 +172,7 @@ def save_dna_to_file(a_entities, d_entities, num_for_saving):
 def read_dna_from_file(f_size='0'):
     old_entities = []
     try:
-        with open("Field_" + f_size + "Before_field_best_dna.txt", 'r') as file:
+        with open("Field_" + f_size + "_best_dna.txt", 'r') as file:
             lines = file.readlines()
             for line in lines:
                 wellness, dna = line.strip().split('\t\t')
