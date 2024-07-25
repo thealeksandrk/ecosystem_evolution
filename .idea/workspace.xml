@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7930c735-678a-4c15-a1fa-5d12522b837b" name="Changes" comment="now having 'can' have a price">
+    <list default="true" id="7930c735-678a-4c15-a1fa-5d12522b837b" name="Changes" comment="added sun places and vision method">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ecosystem_DNA.py" beforeDir="false" afterPath="$PROJECT_DIR$/ecosystem_DNA.py" afterDir="false" />
     </list>
@@ -42,6 +42,7 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
     &quot;Python.ballevo.executor&quot;: &quot;Run&quot;,
     &quot;Python.ecosystem_DNA.executor&quot;: &quot;Run&quot;,
     &quot;Python.ecosystem_reg1.executor&quot;: &quot;Run&quot;,
@@ -125,7 +126,21 @@
       <option name="presentableId" value="LOCAL−00008" />
       <updated>1721479654083</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL−00009" summary="modified stopper - now can be every fps.&#10;changed saving - now depends on field size">
+      <option name="closed" value="true" />
+      <created>1721567320121</created>
+      <option name="number" value="LOCAL−00009" />
+      <option name="presentableId" value="LOCAL−00009" />
+      <updated>1721567320121</updated>
+    </task>
+    <task id="LOCAL−00010" summary="added sun places and vision method">
+      <option name="closed" value="true" />
+      <created>1721664556654</created>
+      <option name="number" value="LOCAL−00010" />
+      <option name="presentableId" value="LOCAL−00010" />
+      <updated>1721664556654</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -134,6 +149,8 @@
     <MESSAGE value="nothing" />
     <MESSAGE value="field is much bigger, added no painting mode" />
     <MESSAGE value="now having 'can' have a price" />
-    <option name="LAST_COMMIT_MESSAGE" value="now having 'can' have a price" />
+    <MESSAGE value="modified stopper - now can be every fps.&#10;changed saving - now depends on field size" />
+    <MESSAGE value="added sun places and vision method" />
+    <option name="LAST_COMMIT_MESSAGE" value="added sun places and vision method" />
   </component>
 </project>

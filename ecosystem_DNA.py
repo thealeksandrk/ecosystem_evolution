@@ -24,7 +24,7 @@ field_x_window: float = window_size / field_size
 
 # Start nums
 start_DNA_len: int = 1000
-start_num_of_entities: int = 10
+start_num_of_entities: int = 2
 start_num_of_old_entities: int = 0
 num_of_entities_for_saving: int = 100
 start_marker_size: int = 25
@@ -200,7 +200,7 @@ class Biotic:
         self.vel_y: float = parent.get('vel_y', rand(-2, 2))
         self.food_in_stomach_for_hunger_count: float = parent.get('hunger_count', self.marker_size)
         self.hp: float = parent.get('hp', int(self.marker_size))
-        self.when_is_sibling: float = parent.get('when_is_sibling', 0.125)
+        self.not_sibling_dict = dict()
         self.number_of_descendants: int = 0
         self.how_long_living: int = 0
 
@@ -224,6 +224,7 @@ class Biotic:
             '102': 'num_3_256_color',
             '103': 'num_1_062_vision_angle',
             '110': 'num_1_999_vision_distance',  # it will be 10 times bigger
+            '111': 'num_1_010_when_is_sibling',
 
             '200': 'bool_45_00_can_eat_alives',
             '201': 'bool_45_00_can_eat_deads',
@@ -237,6 +238,7 @@ class Biotic:
             '102': '330',
             '103': '320',
             '110': '313',
+            '111': '312',
 
             '200': '323',
             '201': '322',
@@ -315,19 +317,40 @@ class Biotic:
     def get_orientation(self):
         return math.atan2(self.vel_y, self.vel_x)
 
-    def sibling_blood_score(self, second_id):
-        # score not by id, but by dna simularity*id_sim
-        segments1 = self.id.split('-')
-        segments2 = second_id.split('-')
-        min_length = min(len(segments1), len(segments2))
-        dif_length = abs(len(segments1) - len(segments2))
-        common_count = 0
-        for i in range(min_length):
-            if segments1[i] == segments2[i]:
-                common_count += 1
-            else:
-                break
-        return (common_count / min_length) / 2 ** (dif_length-1)
+    def sibling_blood_score(self, second_id='', second_dna=''):
+        m = self.dna_len
+        n = len(second_dna)
+
+        dp = [[0] * (n + 1) for _ in range(m + 1)]
+
+        for i in range(m + 1):
+            for j in range(n + 1):
+                if i == 0 or j == 0:
+                    dp[i][j] = 0
+                elif self.dna[i - 1] == second_dna[j - 1]:
+                    dp[i][j] = dp[i - 1][j - 1] + 1
+                else:
+                    dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+
+        max_dna_len = max(self.dna_len, len(second_dna))
+        sibling_score_dna = dp[m][n] / max_dna_len
+        return sibling_score_dna
+
+        # segments1 = self.id.split('-')
+        # segments2 = second_id.split('-')
+        # min_length = min(len(segments1), len(segments2))
+        # dif_length = abs(len(segments1) - len(segments2))
+        # common_count = 0
+        # for i in range(min_length):
+        #     if segments1[i] == segments2[i]:
+        #         common_count += 1
+        #     else:
+        #         break
+        # sibling_score_id = (common_count / min_length) / 2 ** (dif_length-1)
+        # return sibling_score_id
+
+    def add_to_sibling_dict(self, second_id='', second_dna=''):
+        self.not_sibling_dict.update({second_id: self.sibling_blood_score(second_dna=second_dna) <= self.when_is_sibling})
 
     def movement_factor(self):
         return (self.hp / (self.marker_size * 2)) / ((self.food_in_stomach_for_hunger_count / self.marker_size * 1.5) *
@@ -346,8 +369,7 @@ class Biotic:
                 self.hp = 0
 
             self.move()
-
-            for action in self.dict_can_attr:
+            for action in self.dict_can_attr:  # I think, i will not use too many 'can' actions, so i can make it inside move cucle
                 action()
 
             self.hunger()
@@ -449,7 +471,7 @@ class Biotic:
                             median_nums = nums[len_nums // 2]
                         if char_num_of_nums == 1:
                             char_max_value = float(char_max_value)/10
-                            char_value = (float(median_nums) / 330 - 0.5) * char_max_value
+                            char_value = (float(median_nums) / 330 - 0.5) * char_max_value * 2
                         else:
                             char_value = [sum_nums % char_max_value,
                                           mean_nums % char_max_value,
@@ -463,9 +485,9 @@ class Biotic:
     # AI block
     def eat_alives(self):
         for entity_2 in entities:
-            if (entity_2.alive and self.sibling_blood_score(entity_2.id) < self.when_is_sibling
-                    and self.interact(entity_2.x, entity_2.y, entity_2.marker_size)):
-                # check if it will work without index control and this code.
+            if entity_2 == self: continue
+            if (entity_2.alive and self.not_sibling_dict.get(entity_2.id, False)
+                    and self.interact(entity_2.x, entity_2.y, entity_2.marker_size)):  # Can change is_sibling_dict logic - change to can_eat_it, to make less controlls ||| No, couldnt - alive can dead
                 if self.marker_size < entity_2.marker_size and entity_2.can_eat_alives:
                     self.hp -= self.marker_size / 10 + 1
                     entity_2.food_in_stomach_for_hunger_count += self.marker_size / 10 + 1
@@ -478,7 +500,7 @@ class Biotic:
 
     def eat_deads(self):
         for entity_2 in entities:
-            if (not entity_2.alive and self.sibling_blood_score(entity_2.id) < self.when_is_sibling * 2
+            if (not entity_2.alive and self.not_sibling_dict.get(entity_2.id, False)
                     and self.interact(entity_2.x, entity_2.y, entity_2.marker_size)):
                 if self.marker_size > entity_2.marker_size:
                     self.food_in_stomach_for_hunger_count += entity_2.marker_size / 30 + 1
@@ -491,21 +513,21 @@ class Biotic:
         # make smth for better sunlight imitation
         global where_is_sun
         is_in_sun = False
-        for place in where_is_sun:
-            if place.free_sun_amount > 0 and self.interact(place.x, place.y, place.r):
+        for place_ in where_is_sun:
+            if place_.free_sun_amount > 0 and self.interact(place_.x, place_.y, place_.r):
                 is_in_sun = True
-                place.update_free_sun_amount(self.marker_size)
+                place_.update_free_sun_amount(self.marker_size)
                 break
-        print(self.max_velocity[0] + self.max_velocity[1])
         self.food_in_stomach_for_hunger_count += 10 * is_in_sun / (self.max_velocity[0] + self.max_velocity[1] + 0.1)  # 0.35
 
     def hunger(self):
-        hunger_count = 0.04 + self.marker_size/500 + 0.03 * (len(self.dict_can_attr)-1) + 0.01 * (abs(self.vel_x) + abs(self.vel_y))
-        # print(hunger_count)
+        hunger_count = self.marker_size/500 + 0.05 * (len(self.dict_can_attr)-1) + 0.01 * (abs(self.vel_x) + abs(self.vel_y))
         self.food_in_stomach_for_hunger_count -= hunger_count
         self.hp += 0.5
         if self.food_in_stomach_for_hunger_count < self.marker_size/2:
             self.hp -= 1
+            self.food_in_stomach_for_hunger_count += self.marker_size / 100
+            self.marker_size -= self.marker_size / 100
             if self.food_in_stomach_for_hunger_count <= 0:
                 self.hp -= 0.5 + self.marker_size/500
                 self.food_in_stomach_for_hunger_count = 0
@@ -515,12 +537,17 @@ class Biotic:
                 self.food_in_stomach_for_hunger_count = self.marker_size * 1.5
                 self.hp -= 0.9
 
+        if self.hp <= self.marker_size / 2:
+            self.hp += self.food_in_stomach_for_hunger_count / 5
+            self.food_in_stomach_for_hunger_count -= self.food_in_stomach_for_hunger_count / 5
+
     def mass_change(self):
-        self.marker_size += self.mass_change_factor + self.hp / (self.marker_size * 2) - (self.marker_size / 120 - 0.5)
+        mass_change = self.mass_change_factor + self.hp / (self.marker_size * 2) - (self.marker_size / 120 - 0.5)
+        self.marker_size += mass_change
+        self.food_in_stomach_for_hunger_count -= mass_change
         if self.marker_size > 100:
-            self.marker_size = 100
-            self.hp -= 10
-        elif self.marker_size < 10:
+            self.hp -= (self.marker_size - 100)/10
+        elif self.marker_size <= 10:
             self.marker_size = 10
             self.hp -= 1
 
@@ -531,50 +558,43 @@ class Biotic:
         if self.food_in_stomach_for_hunger_count > self.marker_size * 1.25: return None
         # Determine the new velocity based on some conditions
         closest_distance = float('inf')
+        closest_aim = None
         if self.can_eat_alives or self.can_eat_deads:
-            closest_entity = None
             for entity_2 in entities:
-                if self.is_in_sight(entity_2) and ((entity_2.alive and self.can_eat_alives
-                    and self.sibling_blood_score(entity_2.id) < self.when_is_sibling)
-                    or (not entity_2.alive and self.can_eat_deads
-                        and self.sibling_blood_score(entity_2.id) < self.when_is_sibling * 2)):
+                if entity_2 == self: continue
+                if entity_2.id not in self.not_sibling_dict:
+                    self.add_to_sibling_dict(entity_2.id, entity_2.dna)
+                if (self.not_sibling_dict[entity_2.id] and self.is_in_sight(entity_2)
+                        and ((entity_2.alive and self.can_eat_alives)
+                             or (not entity_2.alive and self.can_eat_deads))):
                     distance = ((entity_2.x - self.x) ** 2 + (entity_2.y - self.y) ** 2) ** 0.5 + 0.001
                     if distance < closest_distance:
                         closest_distance = distance
-                        closest_entity = entity_2
+                        closest_aim = entity_2
 
-            if closest_entity:
-                if closest_entity.can_eat_alives and closest_entity.marker_size > self.marker_size:
-                    closest_distance *= -1
-                m_f = self.movement_factor()
-
-                self.vel_x = (closest_entity.x - self.x) / closest_distance * self.max_velocity[0] * m_f
-                self.vel_y = (closest_entity.y - self.y) / closest_distance * self.max_velocity[1] * m_f
-
-            if self.vel_x > self.max_velocity[0]: self.vel_x = self.max_velocity[0]
-            elif self.vel_x < -self.max_velocity[0]: self.vel_x = -self.max_velocity[0]
-            if self.vel_y > self.max_velocity[1]: self.vel_y = self.max_velocity[1]
-            elif self.vel_y < -self.max_velocity[1]: self.vel_y = -self.max_velocity[1]
+            if closest_aim and closest_aim.can_eat_alives and closest_aim.marker_size > self.marker_size:
+                closest_distance *= -1
 
         if self.can_photosynthesize:
-            closest_sun = None
-            for place in where_is_sun:
-                if place.free_sun_amount > 0:
-                    distance = ((place.x - self.x) ** 2 + (place.y - self.y) ** 2) ** 0.5 - place.r / 2
-                    if distance < closest_distance:
+            closest_r = 100000
+            for place_ in where_is_sun:
+                if place_.free_sun_amount > 0:
+                    distance = ((place_.x - self.x) ** 2 + (place_.y - self.y) ** 2) ** 0.5 - place_.r / 2
+                    if distance < abs(closest_distance):
                         closest_distance = distance
-                        closest_sun = place
+                        closest_aim = place_
+                        closest_r = place_.r
+            if abs(closest_distance) <= closest_r: closest_distance = 1000
 
-            if closest_sun:
-                m_f = self.movement_factor()
-                if closest_distance == 0: closest_distance = 1000
-                self.vel_x = (closest_sun.x - self.x) / closest_distance * self.max_velocity[0] * m_f
-                self.vel_y = (closest_sun.y - self.y) / closest_distance * self.max_velocity[1] * m_f
+        if closest_aim:
+            m_f = self.movement_factor()
+            self.vel_x = (closest_aim.x - self.x) / closest_distance * self.max_velocity[0] * m_f
+            self.vel_y = (closest_aim.y - self.y) / closest_distance * self.max_velocity[1] * m_f
 
-            if self.vel_x > self.max_velocity[0]: self.vel_x = self.max_velocity[0]
-            elif self.vel_x < -self.max_velocity[0]: self.vel_x = -self.max_velocity[0]
-            if self.vel_y > self.max_velocity[1]: self.vel_y = self.max_velocity[1]
-            elif self.vel_y < -self.max_velocity[1]: self.vel_y = -self.max_velocity[1]
+        if self.vel_x > self.max_velocity[0]: self.vel_x = self.max_velocity[0]
+        elif self.vel_x < -self.max_velocity[0]: self.vel_x = -self.max_velocity[0]
+        if self.vel_y > self.max_velocity[1]: self.vel_y = self.max_velocity[1]
+        elif self.vel_y < -self.max_velocity[1]: self.vel_y = -self.max_velocity[1]
 
         self.x += self.vel_x
         self.y += self.vel_y
@@ -597,6 +617,8 @@ class Biotic:
     # Add variables for movement, like braveness, etc
     # add control what to do - hunt to small or run from big and braveness
     # chane hunt func to cooperate factor and size*braveness
+    # add mitos mass, mass parent/child factor
+    # Finally make normal sibls score
 
 
 class Abiotic:
@@ -695,3 +717,17 @@ while play:
 
 save_dna_to_file(entities, died_entities, num_of_entities_for_saving)
 pygame.quit()
+
+
+# import time
+# a={'1': 1, '2': 2, '3': 3}
+#
+# start = time.time()
+# for i in range(10000000):
+#     s = a['2']
+# print("Time 1 " + str(time.time() - start))
+#
+# start = time.time()
+# for i in range(10000000):
+#     s = a.get('2', False)
+# print("Time 2 " + str(time.time() - start))
