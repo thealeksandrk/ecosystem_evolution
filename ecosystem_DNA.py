@@ -1,9 +1,11 @@
 # Need to think how to make AI without AI
 # Mb make DNA - Gen - Protein - char - smhow AI
 import math
+import time
 
 # Try to add more hormons
 
+# wtf with mass and food
 
 # Imports
 # import matplotlib.pyplot as plt
@@ -11,6 +13,7 @@ import pygame
 from random import randint as rand
 from random import choices
 from collections import defaultdict
+from pylcs import lcs_sequence_length as lcs_sl
 
 # Variables
 # Start arrays
@@ -24,12 +27,13 @@ field_x_window: float = window_size / field_size
 
 # Start nums
 start_DNA_len: int = 1000
-start_num_of_entities: int = 2
+start_num_of_entities: int = 10
 start_num_of_old_entities: int = 0
 num_of_entities_for_saving: int = 100
 start_marker_size: int = 25
 
 mutation_rate: float = 0.05
+base_to_bits = {'0': 0b00, '1': 0b01, '2': 0b10, '3': 0b11}
 
 not_pause: bool = True
 painting: bool = True
@@ -120,11 +124,11 @@ def save_dna_to_file(a_entities, d_entities, num_for_saving):
 
     # Helper function to add entities to the dictionary
     def add_entities_to_dict(entities_list):
-        for entity in entities_list:
-            entity_dict[entity.id]["number_of_descendants"] = entity.number_of_descendants
-            parent_id = '-'.join(entity.id.split('-')[:-1])
+        for entity2 in entities_list:
+            entity_dict[entity2.id]["number_of_descendants"] = entity2.number_of_descendants
+            parent_id = '-'.join(entity2.id.split('-')[:-1])
             if parent_id:
-                entity_dict[parent_id]["children"].append(entity.id)
+                entity_dict[parent_id]["children"].append(entity2.id)
 
     # Add all entities to the dictionary
     add_entities_to_dict(entities)
@@ -161,11 +165,15 @@ def save_dna_to_file(a_entities, d_entities, num_for_saving):
 
     best_entities_uniq = sorted(best_entities_uniq, key=lambda x: x[0], reverse=True)[:num_for_saving]
     # Save the top 10 entities to Before_field_best_dna.txt file
+    how_many_new_saved = 0
     with open("Field_" + str(field_size) + "_best_dna.txt", 'w') as file:
-        for wellness, dna in best_entities_uniq:
-            if wellness > 0:
-                file.write(f"{int(wellness)}\t\t{dna}\n")
-                print("Saved dna with wellness =", wellness)
+        for entity2 in best_entities_uniq:
+            if entity2[0] > 0:
+                file.write(f"{int(entity2[0])}\t\t{entity2[1]}\n")
+                if entity2 in current_entities:
+                    print("Saved new dna with wellness =", entity2[0])
+                    how_many_new_saved += 1
+    print("Saved", how_many_new_saved, "new DNAs")
     file.close()
 
 
@@ -194,7 +202,6 @@ class Biotic:
         self.dna_len: int = len(self.dna)
         self.temp_dna: str = ''
         self.mutation_rate: float = parent.get('mutation_rate', mutation_rate)
-        self.when_ready_to_create: int = parent.get('when_ready_to_create', 100)
         self.when_ready_to_die: int = parent.get('when_ready_to_die', 10)
         self.vel_x: float = parent.get('vel_x', rand(-2, 2))
         self.vel_y: float = parent.get('vel_y', rand(-2, 2))
@@ -212,19 +219,22 @@ class Biotic:
         # 0** - most important
         # 1** - nums and factors for ai
         # 2** - Bools for funcs
-        # Naming: 'num' + num of nums (1) + max value (3) + name
-        # Between '_'   | if num of nums=1 max value will /10 float
-        #    or 'bool' + i_factor (2/10) + bigger then (2/10) + name
+        # Naming: 'num' + num of nums + min value + max value + name
+        # Between '_'   | if num of nums=1 min and max value will /10 float
+        #    or 'bool' + i_factor (/10) + bigger then (/10) + name
         #    Between '_' | if for def - part after 'can_' must be same as def name
         self.start_codons = {
             '000': 'bool_00_00_can_replication',
 
-            '100': 'num_1_045_mass_change_factor',
-            '101': 'num_2_010_max_velocity',
-            '102': 'num_3_256_color',
-            '103': 'num_1_062_vision_angle',
-            '110': 'num_1_999_vision_distance',  # it will be 10 times bigger
-            '111': 'num_1_010_when_is_sibling',
+            '100': 'num_1_-045_045_mass_change_factor',
+            '101': 'num_2_0_010_max_velocity',
+            '102': 'num_3_0_256_color',
+            '103': 'num_1_0_062_vision_angle',
+            '110': 'num_1_0_9999_vision_distance',
+            '111': 'num_1_0_010_when_is_sibling',
+            '112': 'num_1_0_009_parent_mass_to_child',
+            '113': 'num_1_0_99999_when_ready_to_create_max',
+            '120': 'num_2_0_300_min_and_max_mass',
 
             '200': 'bool_45_00_can_eat_alives',
             '201': 'bool_45_00_can_eat_deads',
@@ -239,6 +249,9 @@ class Biotic:
             '103': '320',
             '110': '313',
             '111': '312',
+            '112': '311',
+            '113': '310',
+            '120': '303',
 
             '200': '323',
             '201': '322',
@@ -247,6 +260,9 @@ class Biotic:
 
         self.dna_sequencing()
 
+        self.when_ready_to_create: int = int(self.when_ready_to_create_max)
+        if self.min_and_max_mass[0] > self.min_and_max_mass[1]:
+            self.min_and_max_mass[0], self.min_and_max_mass[1] = self.min_and_max_mass[1], self.min_and_max_mass[0]
         self.dict_can_attr = []
         for parameter in self.start_codons:
             char_name = self.start_codons[parameter][11:]
@@ -257,6 +273,7 @@ class Biotic:
                     self.dict_can_attr.append(action)
                 else:
                     print("_____There must be error in def name for", char_name[4:], "_____", action)
+        self.dict_can_attr_len = max(len(self.dict_can_attr), 1) - 1
 
     def __getattr__(self, item):
         if item == 'color':
@@ -264,6 +281,9 @@ class Biotic:
             return [125, 125, 125]
         elif item == 'max_velocity':
             self.max_velocity = [0, 0]
+            return [0, 0]
+        elif item == 'min_and_max_mass':
+            self.min_and_max_mass = [0, 10]
             return [0, 0]
         else: return 0
 
@@ -288,6 +308,7 @@ class Biotic:
         del temp_dict['start_codons']
         del temp_dict['finish_codons']
         del temp_dict['dict_can_attr']
+        temp_dict = dict(sorted(temp_dict.items()))
         print("\n\n\t\t Biota parameters START\n")
         for parameter in temp_dict:
             print('{} : {}'.format(parameter, temp_dict[parameter]))
@@ -304,7 +325,7 @@ class Biotic:
         dx = entity2.x - self.x
         dy = entity2.y - self.y
         distance = dx ** 2 + dy ** 2
-        if distance > (self.vision_distance * 10) ** 2:
+        if distance > self.vision_distance ** 2:
             return False
         angle = math.atan2(dy, dx) % Pi_2
         vision_angle_start = (self.get_orientation() - self.vision_angle / 2) % Pi_2
@@ -317,40 +338,9 @@ class Biotic:
     def get_orientation(self):
         return math.atan2(self.vel_y, self.vel_x)
 
-    def sibling_blood_score(self, second_id='', second_dna=''):
-        m = self.dna_len
-        n = len(second_dna)
-
-        dp = [[0] * (n + 1) for _ in range(m + 1)]
-
-        for i in range(m + 1):
-            for j in range(n + 1):
-                if i == 0 or j == 0:
-                    dp[i][j] = 0
-                elif self.dna[i - 1] == second_dna[j - 1]:
-                    dp[i][j] = dp[i - 1][j - 1] + 1
-                else:
-                    dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
-
-        max_dna_len = max(self.dna_len, len(second_dna))
-        sibling_score_dna = dp[m][n] / max_dna_len
-        return sibling_score_dna
-
-        # segments1 = self.id.split('-')
-        # segments2 = second_id.split('-')
-        # min_length = min(len(segments1), len(segments2))
-        # dif_length = abs(len(segments1) - len(segments2))
-        # common_count = 0
-        # for i in range(min_length):
-        #     if segments1[i] == segments2[i]:
-        #         common_count += 1
-        #     else:
-        #         break
-        # sibling_score_id = (common_count / min_length) / 2 ** (dif_length-1)
-        # return sibling_score_id
-
     def add_to_sibling_dict(self, second_id='', second_dna=''):
-        self.not_sibling_dict.update({second_id: self.sibling_blood_score(second_dna=second_dna) <= self.when_is_sibling})
+        self.not_sibling_dict[second_id] = (
+                (lcs_sl(self.dna, second_dna) / (min(self.dna_len, len(second_dna)))) <= self.when_is_sibling)
 
     def movement_factor(self):
         return (self.hp / (self.marker_size * 2)) / ((self.food_in_stomach_for_hunger_count / self.marker_size * 1.5) *
@@ -365,15 +355,18 @@ class Biotic:
             if self.hp > self.marker_size * 2:
                 self.hp = self.marker_size * 2
             elif self.hp <= 0:
-                self.when_ready_to_die -= 1
+                self.alive = False
                 self.hp = 0
 
             self.move()
+
             for action in self.dict_can_attr:  # I think, i will not use too many 'can' actions, so i can make it inside move cucle
                 action()
+            if self.marker_size <= 0: print(self.id, "ms after move =", self.marker_size)
 
             self.hunger()
             self.mass_change()
+            if self.marker_size <= 0: print(self.id, "ms after mchange =", self.marker_size)
 
             if self.when_ready_to_create: self.when_ready_to_create -= 1
             else: self.create_new_entity = True
@@ -385,7 +378,6 @@ class Biotic:
         else:
             self.marker_size -= self.marker_size / 100 + 0.5
             self.color = (self.color[0]//1.01, self.color[1]//1.01, self.color[2]//1.01)
-            # except e as ex: self.color = (125, 125, 125)
 
     # DNA block
     def dna_sequencing(self):
@@ -419,21 +411,22 @@ class Biotic:
                     new_dna += self.temp_dna[3:5]
                     entities.append(Biotic(x=self.x + 10, y=self.y + 10,
                                            dna=new_dna, id=self.id + '-',
-                                           color=self.color, marker_size=self.marker_size/50+start_marker_size))
+                                           color=self.color, marker_size=self.marker_size * self.parent_mass_to_child))
                     self.number_of_descendants += 1
                     break
                 self.temp_dna = self.temp_dna[3:]
             self.create_new_entity = False
-            self.marker_size *= 0.8
-            self.hp *= 0.7
-            self.when_ready_to_create = 500
+            self.marker_size *= 1-self.parent_mass_to_child
+            self.hp *= 0.9
+            self.when_ready_to_create = int(self.when_ready_to_create_max)
             self.when_ready_to_die -= 1
 
     def add_characteristic(self, char_name, finish_codon):
-        if 'bool_' in char_name[:7]:
-            char_i_factor = float(char_name[5:7]) / 10
-            char_bigger_then = float(char_name[8:10]) / 10
-            char_name = char_name[11:]
+        chars = char_name.split('_')
+        if chars[0] == 'bool':
+            char_i_factor = float(chars[1]) / 10
+            char_bigger_then = float(chars[2]) / 10
+            char_name = '_'.join(chars[3:])
             attr = self.__dict__.get(char_name, 2)
             if attr == 2:
                 sum_nucs: int = 0
@@ -446,10 +439,11 @@ class Biotic:
                     codon = int(codon)
                     sum_nucs += codon // 100 + codon % 10 + ((codon // 10) % 10)
 
-        elif 'num_' in char_name[:7]:
-            char_num_of_nums = int(char_name[4:5])
-            char_max_value = int(char_name[6:9])
-            char_name = char_name[10:]
+        elif chars[0] == 'num':
+            char_num_of_nums = int(chars[1])
+            char_min_value = int(chars[2])
+            char_max_value = int(chars[3])
+            char_name = '_'.join(chars[4:])
             attr = self.__dict__.get(char_name, False)
             if not attr:
                 nums = []
@@ -471,11 +465,12 @@ class Biotic:
                             median_nums = nums[len_nums // 2]
                         if char_num_of_nums == 1:
                             char_max_value = float(char_max_value)/10
-                            char_value = (float(median_nums) / 330 - 0.5) * char_max_value * 2
+                            char_min_value = float(char_min_value)/10
+                            char_value = (float(median_nums) / 330) * (char_max_value - char_min_value) + char_min_value
                         else:
-                            char_value = [sum_nums % char_max_value,
-                                          mean_nums % char_max_value,
-                                          median_nums % char_max_value]
+                            char_value = [sum_nums % (char_max_value - char_min_value) + char_min_value,
+                                          mean_nums % (char_max_value - char_min_value) + char_min_value,
+                                          median_nums % (char_max_value - char_min_value) + char_min_value]
                             char_value = char_value[:char_num_of_nums]
                         setattr(self, char_name, char_value)
                         break
@@ -521,49 +516,56 @@ class Biotic:
         self.food_in_stomach_for_hunger_count += 10 * is_in_sun / (self.max_velocity[0] + self.max_velocity[1] + 0.1)  # 0.35
 
     def hunger(self):
-        hunger_count = self.marker_size/500 + 0.05 * (len(self.dict_can_attr)-1) + 0.01 * (abs(self.vel_x) + abs(self.vel_y))
+        hunger_count = self.marker_size/500 + 0.05 * self.dict_can_attr_len + 0.01 * (abs(self.vel_x) + abs(self.vel_y))
         self.food_in_stomach_for_hunger_count -= hunger_count
-        self.hp += 0.5
-        if self.food_in_stomach_for_hunger_count < self.marker_size/2:
-            self.hp -= 1
-            self.food_in_stomach_for_hunger_count += self.marker_size / 100
-            self.marker_size -= self.marker_size / 100
-            if self.food_in_stomach_for_hunger_count <= 0:
-                self.hp -= 0.5 + self.marker_size/500
-                self.food_in_stomach_for_hunger_count = 0
-        elif self.food_in_stomach_for_hunger_count > self.marker_size:
+
+        # If there's enough food, maintain or increase hp
+        if self.food_in_stomach_for_hunger_count > 0:
             self.hp += 0.5
-            if self.food_in_stomach_for_hunger_count > self.marker_size * 1.5:
-                self.food_in_stomach_for_hunger_count = self.marker_size * 1.5
-                self.hp -= 0.9
+        else:
+            # If there's not enough food, decrease hp
+            self.hp -= 1
+            self.marker_size -= self.marker_size / 100
+            self.food_in_stomach_for_hunger_count = 0
 
-        if self.hp <= self.marker_size / 2:
-            self.hp += self.food_in_stomach_for_hunger_count / 5
-            self.food_in_stomach_for_hunger_count -= self.food_in_stomach_for_hunger_count / 5
+        # If the entity is starving, decrease hp more
+        if self.hp < self.min_and_max_mass[0]:
+            self.marker_size -= self.min_and_max_mass[0] - self.hp
+            self.hp = self.min_and_max_mass[0]
 
-    def mass_change(self):
+        if self.food_in_stomach_for_hunger_count > self.marker_size:
+            self.hp += 0.5
+            self.marker_size += self.marker_size / 100
+            self.food_in_stomach_for_hunger_count = min(self.food_in_stomach_for_hunger_count, self.marker_size * 1.5)
+
+    def mass_change(self):  # wtf with mass????
         mass_change = self.mass_change_factor + self.hp / (self.marker_size * 2) - (self.marker_size / 120 - 0.5)
         self.marker_size += mass_change
-        self.food_in_stomach_for_hunger_count -= mass_change
-        if self.marker_size > 100:
-            self.hp -= (self.marker_size - 100)/10
-        elif self.marker_size <= 10:
-            self.marker_size = 10
-            self.hp -= 1
+        if self.marker_size > self.min_and_max_mass[1]:
+            self.hp -= (self.marker_size - self.min_and_max_mass[1])
+            self.marker_size = self.min_and_max_mass[1]
+        elif self.marker_size < self.min_and_max_mass[0]:
+            if self.hp <= self.food_in_stomach_for_hunger_count:
+                self.marker_size += self.food_in_stomach_for_hunger_count
+                self.food_in_stomach_for_hunger_count = 0
+            else:
+                self.marker_size += self.hp/2 + 2
+                self.hp -= self.hp/2 + 2
 
     def move(self):
         global entities, field_size, where_is_sun
 
         # Need to make smth for plants, and other mooving when stomach is full
-        if self.food_in_stomach_for_hunger_count > self.marker_size * 1.25: return None
+        # if self.food_in_stomach_for_hunger_count > self.marker_size * 1.25: return None
         # Determine the new velocity based on some conditions
         closest_distance = float('inf')
         closest_aim = None
         if self.can_eat_alives or self.can_eat_deads:
             for entity_2 in entities:
                 if entity_2 == self: continue
-                if entity_2.id not in self.not_sibling_dict:
+                if self.not_sibling_dict.get(entity_2.id, 2) == 2:  # || entity_2.id not in self.not_sibling_dict:
                     self.add_to_sibling_dict(entity_2.id, entity_2.dna)
+
                 if (self.not_sibling_dict[entity_2.id] and self.is_in_sight(entity_2)
                         and ((entity_2.alive and self.can_eat_alives)
                              or (not entity_2.alive and self.can_eat_deads))):
@@ -614,6 +616,7 @@ class Biotic:
             self.y = field_size - self.marker_size
             self.vel_y *= -1
 
+
     # Add variables for movement, like braveness, etc
     # add control what to do - hunt to small or run from big and braveness
     # chane hunt func to cooperate factor and size*braveness
@@ -622,12 +625,12 @@ class Biotic:
 
 
 class Abiotic:
-    def __init__(self, x=0, y=0, r=0, sun_amount=0, place_type='sun'):
+    def __init__(self, x=0, y=0, r=0, place_type='sun'):
         self.x: int = x
         self.y: int = y
         self.r: int = r
-        self.sun_amount: int = sun_amount
-        self.free_sun_amount: int = sun_amount
+        self.max_sun_amount: int = r
+        self.free_sun_amount: int = r
         self.type: str = place_type
         self.color = (125, 125, 0)
 
@@ -660,7 +663,7 @@ font = pygame.font.SysFont('arial', 15)
 # print(pygame.font.get_fonts())
 
 for i in range(3):
-    where_is_sun.append(Abiotic(x=rand(1, field_size), y=rand(1, field_size), r=rand(100, 300), sun_amount=200, place_type='sun'))
+    where_is_sun.append(Abiotic(x=rand(1, field_size), y=rand(1, field_size), r=rand(50, 200), place_type='sun'))
 
 
 eco_start()
@@ -704,7 +707,7 @@ while play:
         if painting:
             game.fill((30, 30, 30))
             for place in where_is_sun:
-                place.free_sun_amount = place.sun_amount
+                place.free_sun_amount = place.max_sun_amount
                 place.draw_circle()
             for entity in entities:
                 entity.update()
@@ -720,14 +723,14 @@ pygame.quit()
 
 
 # import time
-# a={'1': 1, '2': 2, '3': 3}
-#
+# a = {'1': 1, '2': 2, '3': 3}
 # start = time.time()
-# for i in range(10000000):
-#     s = a['2']
+# for i in range(50000000):
+#     if a.get(str(i), '') == 'q': a[str(i)] = i
 # print("Time 1 " + str(time.time() - start))
 #
+# a = {'1': 1, '2': 2, '3': 3}
 # start = time.time()
-# for i in range(10000000):
-#     s = a.get('2', False)
+# for i in range(50000000):
+#     if str(i) not in a.keys(): a[str(i)] = i
 # print("Time 2 " + str(time.time() - start))
